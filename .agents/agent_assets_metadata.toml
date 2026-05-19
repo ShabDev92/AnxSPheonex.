@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "I5b-38hhP6ZVweeZ8sH3O"
+uri = "file://artifacts/anxspheonex/assets/images/icon.png"
+type = "image"
+title = "generated_image"

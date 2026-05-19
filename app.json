@@ -1,39 +1,12 @@
 {
   "expo": {
-    "name": "AnxSPheonex",
-    "slug": "anxspheonex",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "anxspheonex",
-    "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0a0010"
-    },
-    "ios": {
-      "supportsTablet": false
+    "extra": {
+      "eas": {
+        "projectId": "cf1cbd58-9bf0-4ef8-b3bf-6c114dd78089"
+      }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#0a0010"
-      },
-      "package": "com.anxspheonex.app"
-    },
-    "web": {
-      "favicon": "./assets/images/icon.png"
-    },
-    "plugins": [
-      "expo-router",
-      "expo-font",
-      "expo-web-browser"
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "package": "com.shabzdev.workspace"
     }
   }
 }

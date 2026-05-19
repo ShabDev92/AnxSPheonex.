@@ -1,0 +1,13 @@
+kind = "mobile"
+previewPath = "/"
+title = "AnxSPheonex"
+version = "1.0.0"
+id = "artifacts/anxspheonex"
+
+[[services]]
+localPort = 23880
+name = "expo"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/anxspheonex run dev"
