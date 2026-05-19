@@ -18,9 +18,11 @@ import { setApiBaseUrl } from "@/lib/query-client";
 
 SplashScreen.preventAutoHideAsync();
 
-if (process.env.EXPO_PUBLIC_DOMAIN) {
-  setApiBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}/`);
-}
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  "https://fd71fd82-5b54-49fb-acd1-049af26712be-00-20145mtd4k8yg.sisko.replit.dev/";
+
+setApiBaseUrl(API_URL);
 
 const queryClient = new QueryClient();
 
