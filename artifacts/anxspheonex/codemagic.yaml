@@ -8,14 +8,17 @@ workflows:
       vars:
         CI: "1"
     scripts:
+      - name: Install pnpm
+        script: |
+          npm install -g pnpm
       - name: Install dependencies
         script: |
-          npm install --legacy-peer-deps
+          cd artifacts/anxspheonex && pnpm install --no-frozen-lockfile
       - name: Expo prebuild
         script: |
-          CI=1 npx expo prebuild --platform android --clean --no-install
+          cd artifacts/anxspheonex && CI=1 npx expo prebuild --platform android --clean --no-install
       - name: Build APK
         script: |
-          cd android && chmod +x gradlew && ./gradlew assembleRelease
+          cd artifacts/anxspheonex/android && chmod +x gradlew && ./gradlew assembleRelease
     artifacts:
-      - android/app/build/outputs/apk/**/*.apk
+      - artifacts/anxspheonex/android/app/build/outputs/apk/**/*.apk
