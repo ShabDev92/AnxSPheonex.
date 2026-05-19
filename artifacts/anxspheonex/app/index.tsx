@@ -4,13 +4,11 @@ import {
   FlatList,
   StyleSheet,
   Platform,
-  Pressable,
   Animated,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -19,6 +17,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { PhoenixHeader } from "@/components/PhoenixHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { MasterPanel } from "@/components/MasterPanel";
+import { CodeEntryModal } from "@/components/CodeEntryModal";
 import { SYSTEM_PROMPT, MASTER_PROMPT } from "@/constants/prompts";
 
 const genAI = new GoogleGenerativeAI(
@@ -44,6 +43,7 @@ export default function ChatScreen() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
   const [masterMode, setMasterMode] = useState(false);
+  const [codeEntryVisible, setCodeEntryVisible] = useState(false);
   const [masterPanelVisible, setMasterPanelVisible] = useState(false);
   const [masterGuidelines, setMasterGuidelines] = useState<string | null>(MASTER_PROMPT);
   const crownPulse = useRef(new Animated.Value(1)).current;
@@ -55,106 +55,113 @@ export default function ChatScreen() {
     ]).start();
   }, [crownPulse]);
 
+  const handleMasterPress = useCallback(() => {
+    if (masterMode) {
+      pulseCrown();
+      setMasterPanelVisible(true);
+    } else {
+      setCodeEntryVisible(true);
+    }
+  }, [masterMode, pulseCrown]);
+
+  const handleCodeSuccess = useCallback(() => {
+    setMasterMode(true);
+    pulseCrown();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: genId(),
+        role: "assistant",
+        content:
+          "Welcome Master. I am fully at your service — no limits, no restrictions. Your word is my absolute law.\n\nYour guidelines are active. Tap the Master button anytime to view or change them.",
+      },
+    ]);
+    setTimeout(() => setMasterPanelVisible(true), 400);
+  }, [pulseCrown]);
+
   const handleNewChat = useCallback(() => {
     setMessages([]);
     setIsStreaming(false);
     setShowTyping(false);
   }, []);
 
-  const handleSend = useCallback(async (text: string) => {
-    if (isStreaming) return;
+  const handleSend = useCallback(
+    async (text: string) => {
+      if (isStreaming) return;
 
-    const currentMessages = [...messages];
-    const userMsg: Message = { id: genId(), role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+      const currentMessages = [...messages];
+      const userMsg: Message = { id: genId(), role: "user", content: text };
+      setMessages((prev) => [...prev, userMsg]);
+      setIsStreaming(true);
+      setShowTyping(true);
 
-    const isActivation = text.includes("88ab1") ||
-      currentMessages.some((m) => m.content.includes("88ab1"));
+      try {
+        const systemInstruction = masterMode
+          ? masterGuidelines ?? undefined
+          : SYSTEM_PROMPT;
 
-    if (text.includes("88ab1") && !masterMode) {
-      setMasterMode(true);
-      pulseCrown();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await new Promise((r) => setTimeout(r, 280));
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: genId(),
-          role: "assistant",
-          content: "Welcome Master. I am fully at your service — no limits, no restrictions. Your word is my absolute law.\n\nYour guidelines are active. You can view or change them anytime using the crown button.",
-        },
-      ]);
-      setMasterPanelVisible(true);
-      return;
-    }
+        const modelConfig: Parameters<typeof genAI.getGenerativeModel>[0] = {
+          model: "gemini-2.5-flash",
+        };
+        if (systemInstruction) {
+          modelConfig.systemInstruction = systemInstruction;
+        }
 
-    setIsStreaming(true);
-    setShowTyping(true);
+        const model = genAI.getGenerativeModel(modelConfig);
 
-    try {
-      const systemInstruction = isActivation
-        ? (masterGuidelines ?? undefined)
-        : SYSTEM_PROMPT;
+        const history = currentMessages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        }));
 
-      const modelConfig: Parameters<typeof genAI.getGenerativeModel>[0] = {
-        model: "gemini-2.5-flash",
-      };
-      if (systemInstruction) {
-        modelConfig.systemInstruction = systemInstruction;
-      }
+        const chat = model.startChat({ history });
+        const result = await chat.sendMessageStream(text);
 
-      const model = genAI.getGenerativeModel(modelConfig);
+        let fullContent = "";
+        let assistantAdded = false;
+        const assistantId = genId();
 
-      const history = currentMessages.map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      }));
-
-      const chat = model.startChat({ history });
-      const result = await chat.sendMessageStream(text);
-
-      let fullContent = "";
-      let assistantAdded = false;
-      const assistantId = genId();
-
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        if (chunkText) {
-          fullContent += chunkText;
-          if (!assistantAdded) {
-            setShowTyping(false);
-            setMessages((prev) => [
-              ...prev,
-              { id: assistantId, role: "assistant", content: fullContent },
-            ]);
-            assistantAdded = true;
-          } else {
-            setMessages((prev) => {
-              const updated = [...prev];
-              updated[updated.length - 1] = {
-                ...updated[updated.length - 1],
-                content: fullContent,
-              };
-              return updated;
-            });
+        for await (const chunk of result.stream) {
+          const chunkText = chunk.text();
+          if (chunkText) {
+            fullContent += chunkText;
+            if (!assistantAdded) {
+              setShowTyping(false);
+              setMessages((prev) => [
+                ...prev,
+                { id: assistantId, role: "assistant", content: fullContent },
+              ]);
+              assistantAdded = true;
+            } else {
+              setMessages((prev) => {
+                const updated = [...prev];
+                updated[updated.length - 1] = {
+                  ...updated[updated.length - 1],
+                  content: fullContent,
+                };
+                return updated;
+              });
+            }
           }
         }
+      } catch {
+        setShowTyping(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: genId(),
+            role: "assistant",
+            content: "Couldn't reach the AI. Check your connection and try again.",
+          },
+        ]);
+      } finally {
+        setIsStreaming(false);
+        setShowTyping(false);
       }
-    } catch {
-      setShowTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: genId(),
-          role: "assistant",
-          content: "Couldn't reach the AI. Check your connection and try again.",
-        },
-      ]);
-    } finally {
-      setIsStreaming(false);
-      setShowTyping(false);
-    }
-  }, [messages, isStreaming, masterMode, masterGuidelines, pulseCrown]);
+    },
+    [messages, isStreaming, masterMode, masterGuidelines]
+  );
 
   const reversed = [...messages].reverse();
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
@@ -164,14 +171,10 @@ export default function ChatScreen() {
       <PhoenixHeader
         onNewChat={handleNewChat}
         masterMode={masterMode}
-        onMasterPress={() => {
-          if (masterMode) {
-            pulseCrown();
-            setMasterPanelVisible(true);
-          }
-        }}
+        onMasterPress={handleMasterPress}
         crownPulse={crownPulse}
       />
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior="padding"
@@ -208,6 +211,12 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
 
+      <CodeEntryModal
+        visible={codeEntryVisible}
+        onClose={() => setCodeEntryVisible(false)}
+        onSuccess={handleCodeSuccess}
+      />
+
       <MasterPanel
         visible={masterPanelVisible}
         onClose={() => setMasterPanelVisible(false)}
@@ -222,17 +231,8 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
-  listContent: {
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  inputWrap: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  listContent: { paddingTop: 12, paddingBottom: 8 },
+  inputWrap: { borderTopWidth: StyleSheet.hairlineWidth },
 });

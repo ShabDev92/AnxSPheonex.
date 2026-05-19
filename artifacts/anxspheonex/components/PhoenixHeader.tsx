@@ -8,7 +8,7 @@ import { useColors } from "@/hooks/useColors";
 interface Props {
   onNewChat: () => void;
   masterMode?: boolean;
-  onMasterPress?: () => void;
+  onMasterPress: () => void;
   crownPulse?: Animated.Value;
 }
 
@@ -27,7 +27,6 @@ export function PhoenixHeader({ onNewChat, masterMode, onMasterPress, crownPulse
   }, []);
 
   const pulseOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
-
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
 
   return (
@@ -45,36 +44,48 @@ export function PhoenixHeader({ onNewChat, masterMode, onMasterPress, crownPulse
       <Animated.Text
         style={[styles.logo, { color: colors.foreground, opacity: pulseOpacity }]}
       >
-        Anx<Text style={{ color: masterMode ? colors.accent : colors.accent }}>S</Text>Pheonex
-        {masterMode && (
-          <Text style={{ color: colors.primary, fontSize: 13 }}> ★</Text>
-        )}
+        Anx<Text style={{ color: colors.accent }}>S</Text>Pheonex
       </Animated.Text>
 
       <View style={styles.rightButtons}>
-        {masterMode && (
-          <Pressable
-            onPress={onMasterPress}
-            style={styles.btn}
-            testID="master-panel-button"
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onMasterPress();
+          }}
+          style={[
+            styles.masterBtn,
+            {
+              backgroundColor: masterMode ? colors.primary + "22" : colors.secondary,
+              borderColor: masterMode ? colors.primary : colors.border,
+              borderRadius: colors.radius,
+            },
+          ]}
+          testID="master-mode-button"
+        >
+          <Animated.View style={crownPulse ? { transform: [{ scale: crownPulse }] } : undefined}>
+            <Ionicons
+              name={masterMode ? "shield-half" : "shield-half-outline"}
+              size={14}
+              color={masterMode ? colors.accent : colors.mutedForeground}
+            />
+          </Animated.View>
+          <Text
+            style={[
+              styles.masterBtnText,
+              { color: masterMode ? colors.accent : colors.mutedForeground },
+            ]}
           >
-            <Animated.View
-              style={
-                crownPulse
-                  ? { transform: [{ scale: crownPulse }] }
-                  : undefined
-              }
-            >
-              <Ionicons name="shield-half-outline" size={22} color={colors.accent} />
-            </Animated.View>
-          </Pressable>
-        )}
+            {masterMode ? "Master" : "Master Mode"}
+          </Text>
+        </Pressable>
+
         <Pressable
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onNewChat();
           }}
-          style={styles.btn}
+          style={styles.iconBtn}
           testID="new-chat-button"
         >
           <Ionicons name="create-outline" size={22} color={colors.accent} />
@@ -100,9 +111,22 @@ const styles = StyleSheet.create({
   rightButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 8,
   },
-  btn: {
+  masterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+  },
+  masterBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.2,
+  },
+  iconBtn: {
     padding: 8,
   },
 });
