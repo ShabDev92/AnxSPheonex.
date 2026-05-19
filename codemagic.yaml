@@ -2,7 +2,6 @@ workflows:
   android-apk:
     name: AnxSPheonex Android APK
     max_build_duration: 60
-    instance_type: linux_x2
     environment:
       node: 20.17.0
       java: 17
@@ -18,10 +17,3 @@ workflows:
           cd android && chmod +x gradlew && ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/**/*.apk
-    publishing:
-      email:
-        recipients:
-          - builds@codemagic.io
-        notify:
-          success: true
-          failure: true
