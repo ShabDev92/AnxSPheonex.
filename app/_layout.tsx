@@ -20,7 +20,7 @@ SplashScreen.preventAutoHideAsync();
 
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL ||
-  "https://fd71fd82-5b54-49fb-acd1-049af26712be-00-20145mtd4k8yg.sisko.replit.dev/";
+  "https://anxspheonex.replit.app/";
 
 setApiBaseUrl(API_URL);
 
@@ -41,14 +41,20 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const [timedOut, setTimedOut] = React.useState(false);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    const timer = setTimeout(() => setTimedOut(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (fontsLoaded || fontError || timedOut) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, timedOut]);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsLoaded && !fontError && !timedOut) return null;
 
   return (
     <SafeAreaProvider>
