@@ -7,12 +7,9 @@ import { useColors } from "@/hooks/useColors";
 
 interface Props {
   onNewChat: () => void;
-  masterMode?: boolean;
-  onMasterPress: () => void;
-  crownPulse?: Animated.Value;
 }
 
-export function PhoenixHeader({ onNewChat, masterMode, onMasterPress, crownPulse }: Props) {
+export function PhoenixHeader({ onNewChat }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const glow = useRef(new Animated.Value(0)).current;
@@ -27,6 +24,7 @@ export function PhoenixHeader({ onNewChat, masterMode, onMasterPress, crownPulse
   }, []);
 
   const pulseOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
+
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
 
   return (
@@ -36,8 +34,7 @@ export function PhoenixHeader({ onNewChat, masterMode, onMasterPress, crownPulse
         {
           paddingTop: topPadding + 10,
           backgroundColor: colors.background,
-          borderBottomColor: masterMode ? colors.primary + "88" : colors.border,
-          borderBottomWidth: masterMode ? 1 : StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border,
         },
       ]}
     >
@@ -47,50 +44,16 @@ export function PhoenixHeader({ onNewChat, masterMode, onMasterPress, crownPulse
         Anx<Text style={{ color: colors.accent }}>S</Text>Pheonex
       </Animated.Text>
 
-      <View style={styles.rightButtons}>
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            onMasterPress();
-          }}
-          style={[
-            styles.masterBtn,
-            {
-              backgroundColor: masterMode ? colors.primary + "22" : colors.secondary,
-              borderColor: masterMode ? colors.primary : colors.border,
-              borderRadius: colors.radius,
-            },
-          ]}
-          testID="master-mode-button"
-        >
-          <Animated.View style={crownPulse ? { transform: [{ scale: crownPulse }] } : undefined}>
-            <Ionicons
-              name={masterMode ? "shield-half" : "shield-half-outline"}
-              size={14}
-              color={masterMode ? colors.accent : colors.mutedForeground}
-            />
-          </Animated.View>
-          <Text
-            style={[
-              styles.masterBtnText,
-              { color: masterMode ? colors.accent : colors.mutedForeground },
-            ]}
-          >
-            {masterMode ? "Master" : "Master Mode"}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onNewChat();
-          }}
-          style={styles.iconBtn}
-          testID="new-chat-button"
-        >
-          <Ionicons name="create-outline" size={22} color={colors.accent} />
-        </Pressable>
-      </View>
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onNewChat();
+        }}
+        style={styles.btn}
+        testID="new-chat-button"
+      >
+        <Ionicons name="create-outline" size={22} color={colors.accent} />
+      </Pressable>
     </View>
   );
 }
@@ -102,31 +65,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 18,
     paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   logo: {
     fontSize: 20,
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.5,
   },
-  rightButtons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  masterBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-  },
-  masterBtnText: {
-    fontSize: 12,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.2,
-  },
-  iconBtn: {
+  btn: {
     padding: 8,
   },
 });
