@@ -8,9 +8,6 @@ workflows:
       vars:
         CI: "1"
     scripts:
-      - name: Install pnpm
-        script: |
-          npm install -g pnpm
       - name: Install dependencies
         script: |
           pnpm install --frozen-lockfile
