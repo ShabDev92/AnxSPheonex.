@@ -1,12 +1,16 @@
 workflows:
   android-apk:
     name: AnxSPheonex Android APK
-    max_build_duration: 60
+    max_build_duration: 90
     environment:
       node: 20.17.0
       java: 17
+      android_signing:
+        - []
       vars:
         CI: "1"
+        ANDROID_HOME: /usr/local/share/android-sdk
+        ANDROID_SDK_ROOT: /usr/local/share/android-sdk
     scripts:
       - name: Install pnpm
         script: |
@@ -16,15 +20,25 @@ workflows:
       - name: Install dependencies
         script: |
           pnpm install --no-frozen-lockfile
+      - name: Accept Android SDK licenses
+        script: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools" || true
       - name: Expo prebuild
         script: |
           cd artifacts/anxspheonex
           CI=1 pnpm exec expo prebuild --platform android --clean --no-install
+      - name: Set Gradle properties
+        script: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
+          echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+          echo "android.useAndroidX=true" >> ~/.gradle/gradle.properties
       - name: Build APK
         script: |
           cd artifacts/anxspheonex/android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleDebug --stacktrace 2>&1 | tail -100
     artifacts:
       - artifacts/anxspheonex/android/app/build/outputs/apk/**/*.apk
 
