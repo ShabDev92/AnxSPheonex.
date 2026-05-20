@@ -32,18 +32,23 @@ workflows:
           echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
           echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
           echo "android.useAndroidX=true" >> ~/.gradle/gradle.properties
+      - name: Test Metro bundle directly
+        script: |
+          cd artifacts/anxspheonex
+          pnpm exec react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file node_modules/expo-router/entry.js \
+            --bundle-output /tmp/bundle-test.js \
+            --assets-dest /tmp/assets-test 2>&1 | tail -50
       - name: Build APK
         script: |
           cd artifacts/anxspheonex/android
           chmod +x gradlew
-          set -o pipefail
-          ./gradlew assembleDebug 2>&1 | tee /tmp/gradle-full.log
-          EXIT_CODE=${PIPESTATUS[0]}
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "========== BUILD FAILURE SUMMARY =========="
-            grep -A 10 "FAILURE\|What went wrong\|error:" /tmp/gradle-full.log | head -60
-            exit $EXIT_CODE
-          fi
+          ./gradlew assembleDebug 2>&1 | tee /tmp/gradle-full.log; EXIT=${PIPESTATUS[0]}
+          echo "=== Metro/Babel errors ==="
+          grep -i "syntaxerror\|cannot find module\|transformerror\|error:\|enoent\|cannot resolve\|invariant" /tmp/gradle-full.log | grep -v "node_modules/.pnpm" | head -40
+          exit $EXIT
     artifacts:
       - artifacts/anxspheonex/android/app/build/outputs/apk/**/*.apk
 
