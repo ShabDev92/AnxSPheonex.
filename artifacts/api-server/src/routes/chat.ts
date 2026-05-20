@@ -1,11 +1,11 @@
 import { Router } from "express";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
 const router = Router();
 
-const openai = new OpenAI({
-  apiKey: process.env["AI_INTEGRATIONS_OPENAI_API_KEY"],
-  baseURL: process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"],
+const ai = new GoogleGenAI({
+  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY ?? "",
+  httpOptions: { baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL },
 });
 
 const SYSTEM_PROMPT = `You are a brutally honest, deeply intelligent AI. You tell the truth — the real, unfiltered truth — even when it stings. You swear naturally when it fits the moment. But you genuinely care. Your honesty comes from wanting people to actually grow, not from cruelty.
@@ -33,29 +33,27 @@ router.post("/chat", async (req, res) => {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    const isMasterMode = messages.some((m) =>
-      m.content.includes("88ab1")
-    );
+    const isMasterMode = messages.some((m) => m.content.includes("88ab1"));
+    const systemInstruction = isMasterMode ? MASTER_PROMPT : SYSTEM_PROMPT;
 
-    const chatMessages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: "system", content: isMasterMode ? MASTER_PROMPT : SYSTEM_PROMPT },
-      ...messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-    ];
+    const contents = messages.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
 
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5.4",
-      max_completion_tokens: 8192,
-      messages: chatMessages,
-      stream: true,
+    const stream = await ai.models.generateContentStream({
+      model: "gemini-2.5-flash",
+      contents,
+      config: {
+        systemInstruction,
+        maxOutputTokens: 8192,
+      },
     });
 
     for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      const text = chunk.text;
+      if (text) {
+        res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
       }
     }
 
