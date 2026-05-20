@@ -7,14 +7,15 @@ workflows:
       java: 17
       vars:
         CI: "1"
+        COREPACK_INTEGRITY_KEYS: "0"
     scripts:
       - name: Install dependencies
         script: |
-          pnpm install --frozen-lockfile
+          COREPACK_INTEGRITY_KEYS=0 pnpm install --frozen-lockfile
       - name: Expo prebuild
         script: |
           cd artifacts/anxspheonex
-          CI=1 pnpm exec expo prebuild --platform android --clean --no-install
+          CI=1 COREPACK_INTEGRITY_KEYS=0 pnpm exec expo prebuild --platform android --clean --no-install
       - name: Build APK
         script: |
           cd artifacts/anxspheonex/android
