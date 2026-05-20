@@ -8,10 +8,9 @@ workflows:
       vars:
         CI: "1"
     scripts:
-      - name: Enable pnpm via corepack
+      - name: Install pnpm
         script: |
-          corepack enable
-          corepack prepare pnpm@latest --activate
+          npm install -g pnpm
       - name: Install dependencies
         script: |
           pnpm install --frozen-lockfile
